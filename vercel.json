@@ -4,15 +4,15 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/public/gallery-viewer.html"
+      "destination": "/gallery-viewer.html"
     },
     {
       "source": "/upload",
-      "destination": "/public/add-artwork-simple.html"
+      "destination": "/add-artwork-simple.html"
     },
     {
       "source": "/gallery",
-      "destination": "/public/gallery-viewer.html"
+      "destination": "/gallery-viewer.html"
     }
   ],
   "headers": [

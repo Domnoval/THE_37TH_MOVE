@@ -1,11 +1,6 @@
 {
   "version": 2,
   "name": "the_37th_move",
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "edge"
-    }
-  },
   "rewrites": [
     {
       "source": "/",

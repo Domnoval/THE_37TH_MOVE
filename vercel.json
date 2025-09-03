@@ -1,12 +1,6 @@
 {
   "version": 2,
   "name": "the_37th_move",
-  "builds": [
-    {
-      "src": "public/**/*",
-      "use": "@vercel/static"
-    }
-  ],
   "functions": {
     "api/**/*.ts": {
       "runtime": "edge"

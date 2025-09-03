@@ -6,26 +6,18 @@
       "runtime": "edge"
     }
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/",
-      "dest": "/public/gallery-viewer.html"
+      "source": "/",
+      "destination": "/public/gallery-viewer.html"
     },
     {
-      "src": "/upload",
-      "dest": "/public/add-artwork-simple.html"
+      "source": "/upload",
+      "destination": "/public/add-artwork-simple.html"
     },
     {
-      "src": "/gallery",
-      "dest": "/public/gallery-viewer.html"
-    },
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/public/$1"
+      "source": "/gallery",
+      "destination": "/public/gallery-viewer.html"
     }
   ],
   "headers": [

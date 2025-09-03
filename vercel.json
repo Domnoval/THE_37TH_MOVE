@@ -1,0 +1,67 @@
+{
+  "version": 2,
+  "name": "the_37th_move",
+  "builds": [
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "edge"
+    }
+  },
+  "routes": [
+    {
+      "src": "/",
+      "dest": "/public/gallery-viewer.html"
+    },
+    {
+      "src": "/upload",
+      "dest": "/public/add-artwork-simple.html"
+    },
+    {
+      "src": "/gallery",
+      "dest": "/public/gallery-viewer.html"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, x-session-token"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_ANON_KEY": "@supabase_anon_key", 
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
+    "GEMINI_API_KEY": "@gemini_api_key"
+  },
+  "images": {
+    "domains": ["vqhngameogqssibvtmkr.supabase.co", "picsum.photos"],
+    "formats": ["image/webp", "image/avif"],
+    "sizes": [16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920, 2048, 3840]
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+.env*
+.vercel
+netlify_backup/
+*.bak
+DONTB_BMAD_CLAUDE_STARTUP/
+awesome-website/
+bmad*/
+copy-of-*/

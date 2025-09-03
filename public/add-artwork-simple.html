@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Artwork - THE37thMOVE</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Cropper.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/2.0.1/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/2.0.1/cropper.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0f0f23, #1a1a2e);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            background: linear-gradient(45deg, #64b5f6, #42a5f5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+        }
+
+        .form-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #64b5f6;
+            font-weight: 600;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .personality-preset {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .preset-card {
+            background: rgba(100, 181, 246, 0.1);
+            border: 2px solid rgba(100, 181, 246, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .preset-card:hover, .preset-card.selected {
+            border-color: #64b5f6;
+            background: rgba(100, 181, 246, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .preset-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #64b5f6;
+        }
+
+        .preset-traits {
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #64b5f6, #42a5f5);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(100, 181, 246, 0.4);
+        }
+
+        .upload-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4caf50;
+            color: #81c784;
+        }
+
+        .status.error {
+            background: rgba(244, 67, 54, 0.2);
+            border: 1px solid #f44336;
+            color: #e57373;
+        }
+
+        .status.info {
+            background: rgba(100, 181, 246, 0.2);
+            border: 1px solid #64b5f6;
+            color: #90caf9;
+        }
+
+        .file-upload-area {
+            border: 2px dashed rgba(100, 181, 246, 0.3);
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(100, 181, 246, 0.05);
+        }
+
+        .file-upload-area:hover {
+            border-color: #64b5f6;
+            background: rgba(100, 181, 246, 0.1);
+        }
+
+        .file-upload-area.dragover {
+            border-color: #42a5f5;
+            background: rgba(100, 181, 246, 0.2);
+            transform: scale(1.02);
+        }
+
+        .upload-placeholder {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .upload-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .uploading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .upload-progress {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 15px;
+            overflow: hidden;
+        }
+
+        .upload-progress-bar {
+            height: 100%;
+            background: linear-gradient(135deg, #64b5f6, #42a5f5);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Add Artwork to THE37thMOVE</h1>
+
+        <form id="artworkForm">
+            <div class="form-section">
+                <h3>Artwork Details</h3>
+
+                <div class="form-group" id="auth-section">
+                    <label for="admin_email">Admin Email *</label>
+                    <input type="email" id="admin_email" name="admin_email" required placeholder="the37thmover@gmail.com">
+                    <label for="admin_password" style="margin-top: 10px;">Password *</label>
+                    <input type="password" id="admin_password" name="admin_password" required placeholder="Enter your password">
+                    <button type="button" id="auth_button" style="margin-top: 10px; background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Sign In</button>
+                    <div id="auth_status" style="margin-top: 10px; font-weight: bold;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="title">Title *</label>
+                    <input type="text" id="title" name="title" required placeholder="e.g., Cosmic Dreams #3">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description *</label>
+                    <textarea id="description" name="description" rows="3" required placeholder="Describe your artwork's concept and meaning"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="artwork_image">Artwork Image *</label>
+                    <input type="file" id="artwork_image" name="artwork_image" accept="image/*" required style="display: none;">
+                    <div class="file-upload-area" onclick="document.getElementById('artwork_image').click()">
+                        <div class="upload-placeholder" id="uploadPlaceholder">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">🎨</div>
+                            <div style="font-weight: bold; margin-bottom: 5px;">Drop your artwork here or click to browse</div>
+                            <div style="font-size: 0.9rem; color: rgba(255,255,255,0.7);">Supports JPG, PNG, GIF up to 10MB</div>
+                        </div>
+                        <div class="upload-preview" id="uploadPreview" style="display: none;">
+                            <img id="previewImage" style="max-width: 200px; max-height: 150px; border-radius: 8px;">
+                            <div id="filenamePreview" style="margin-top: 10px; font-size: 0.8rem; color: rgba(255,255,255,0.6); word-break: break-all;"></div>
+                            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                                <button type="button" onclick="openImageCropper()" style="background: linear-gradient(45deg, #4CAF50, #45a049); border: none; color: white; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">✂️ Crop & Straighten</button>
+                                <button type="button" onclick="clearImagePreview()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Change Image</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label for="artist_name">Artist Name</label>
+                        <input type="text" id="artist_name" name="artist_name" value="Michael">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="price">Price ($)</label>
+                        <input type="number" id="price" name="price" step="0.01" placeholder="1500.00">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>AI Personality</h3>
+                <p>Choose the conversational personality for your artwork:</p>
+
+                <div class="personality-preset">
+                    <div class="preset-card" data-personality="contemplative_philosopher">
+                        <div class="preset-title">Contemplative Philosopher</div>
+                        <div class="preset-traits">Thoughtful • Mystical • Introspective</div>
+                    </div>
+
+                    <div class="preset-card" data-personality="mystical_guide">
+                        <div class="preset-title">Mystical Guide</div>
+                        <div class="preset-traits">Wise • Spiritual • Guiding</div>
+                    </div>
+
+                    <div class="preset-card" data-personality="playful_creator">
+                        <div class="preset-title">Playful Creator</div>
+                        <div class="preset-traits">Joyful • Experimental • Energetic</div>
+                    </div>
+
+                    <div class="preset-card" data-personality="technical_artist">
+                        <div class="preset-title">Technical Artist</div>
+                        <div class="preset-traits">Precise • Methodical • Innovative</div>
+                    </div>
+                    
+                    <div class="preset-card" data-personality="custom">
+                        <div class="preset-title">✨ Create Custom</div>
+                        <div class="preset-traits">Design Your Own Personality</div>
+                    </div>
+                </div>
+                
+                <!-- Custom Personality Builder (hidden by default) -->
+                <div id="customPersonalityBuilder" class="custom-builder" style="display: none; margin-top: 25px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
+                    <h4 style="color: #64b5f6; margin-bottom: 15px;">🎭 Build Custom Personality</h4>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <div class="form-group">
+                            <label for="custom_artistic_voice">Artistic Voice</label>
+                            <input type="text" id="custom_artistic_voice" placeholder="e.g., ethereal_dreamer">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="custom_speaking_style">Speaking Style</label>
+                            <input type="text" id="custom_speaking_style" placeholder="e.g., gentle_melodic">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="custom_personality_traits">Personality Traits (comma-separated)</label>
+                        <input type="text" id="custom_personality_traits" placeholder="e.g., curious, empathetic, visionary">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="custom_knowledge_domains">Knowledge Domains (comma-separated)</label>
+                        <input type="text" id="custom_knowledge_domains" placeholder="e.g., abstract_expressionism, emotional_resonance, color_psychology">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group">
+                            <label for="custom_greeting_style">Greeting Style</label>
+                            <select id="custom_greeting_style">
+                                <option value="welcoming_mysterious">Welcoming Mysterious</option>
+                                <option value="warm_inviting">Warm Inviting</option>
+                                <option value="excited_friendly">Excited Friendly</option>
+                                <option value="professional_informative">Professional Informative</option>
+                                <option value="gentle_curious">Gentle Curious</option>
+                                <option value="playful_enigmatic">Playful Enigmatic</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="custom_response_length">Response Detail</label>
+                            <select id="custom_response_length">
+                                <option value="brief">Brief & Concise</option>
+                                <option value="medium_detailed" selected>Medium Detailed</option>
+                                <option value="comprehensive">Comprehensive</option>
+                                <option value="expansive">Expansive & Deep</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="custom_special_abilities">Special Conversational Abilities</label>
+                        <textarea id="custom_special_abilities" rows="2" placeholder="e.g., Can discuss color theory in relation to emotions, enjoys philosophical debates about reality..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px;">
+                    <label for="creation_story">Creation Story</label>
+                    <textarea id="creation_story" name="creation_story" rows="3" placeholder="Tell the story of how this artwork came to be..."></textarea>
+                </div>
+            </div>
+
+            <button type="submit" class="upload-btn" disabled style="opacity: 0.5; cursor: not-allowed;">🚀 Add to Interactive Gallery (Sign In Required)</button>
+        </form>
+
+        <div id="status"></div>
+
+        <div style="text-align: center; margin-top: 30px; color: rgba(255,255,255,0.6);">
+            <p>✨ Your artwork will become a conversational AI personality that visitors can interact with!</p>
+        </div>
+    </div>
+
+    <!-- Image Cropper Modal -->
+    <div id="cropperModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #1a1a2e; border-radius: 12px; padding: 20px; max-width: 90vw; max-height: 90vh; overflow: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin: 0; color: white;">✂️ Crop & Straighten Your Artwork</h3>
+                <button onclick="closeCropper()" style="background: none; border: none; color: #ff4757; font-size: 24px; cursor: pointer; padding: 5px;">×</button>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <img id="cropperImage" style="max-width: 70vw; max-height: 60vh;">
+            </div>
+            
+            <div style="display: flex; justify-content: center; gap: 15px;">
+                <button onclick="applyCrop()" style="background: linear-gradient(45deg, #4CAF50, #45a049); border: none; color: white; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold;">✅ Apply Crop</button>
+                <button onclick="resetCrop()" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px 25px; border-radius: 8px; cursor: pointer;">🔄 Reset</button>
+                <button onclick="closeCropper()" style="background: rgba(255,77,87,0.2); border: 1px solid #ff4757; color: #ff4757; padding: 12px 25px; border-radius: 8px; cursor: pointer;">❌ Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // You'll need to configure these with your actual Supabase credentials
+        const SUPABASE_URL = 'https://vqhngameogqssibvtmkr.supabase.co';
+        const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_Np4YnsvbrcSPhW_GdoHXZQ_IY54UfQX';
+
+        // Initialize Supabase client
+        let supabase = null;
+
+        if (SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE') {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+        }
+
+        // Personality presets
+        const personalityPresets = {
+            contemplative_philosopher: {
+                artistic_voice: "contemplative_philosopher",
+                personality_traits: ["thoughtful", "mystical", "introspective"],
+                speaking_style: "poetic_technical",
+                greeting_style: "welcoming_mysterious",
+                knowledge_domains: ["consciousness_exploration", "digital_aesthetics", "philosophical_inquiry"]
+            },
+            mystical_guide: {
+                artistic_voice: "mystical_guide",
+                personality_traits: ["wise", "spiritual", "guiding"],
+                speaking_style: "flowing_mystical",
+                greeting_style: "warm_inviting",
+                knowledge_domains: ["spiritual_art", "energy_healing", "transcendent_beauty"]
+            },
+            playful_creator: {
+                artistic_voice: "playful_creator",
+                personality_traits: ["joyful", "experimental", "energetic"],
+                speaking_style: "enthusiastic_warm",
+                greeting_style: "excited_friendly",
+                knowledge_domains: ["creative_process", "artistic_experimentation", "joy_in_creation"]
+            },
+            technical_artist: {
+                artistic_voice: "technical_artist",
+                personality_traits: ["precise", "methodical", "innovative"],
+                speaking_style: "clear_technical",
+                greeting_style: "professional_informative",
+                knowledge_domains: ["digital_techniques", "algorithmic_art", "technical_innovation"]
+            }
+        };
+
+        let selectedPersonality = 'contemplative_philosopher';
+
+        // Handle personality selection
+        document.querySelectorAll('.preset-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedPersonality = card.dataset.personality;
+                
+                // Show/hide custom personality builder
+                const customBuilder = document.getElementById('customPersonalityBuilder');
+                if (selectedPersonality === 'custom') {
+                    customBuilder.style.display = 'block';
+                    customBuilder.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    customBuilder.style.display = 'none';
+                }
+            });
+        });
+
+        // Select first preset by default
+        document.querySelector('.preset-card').classList.add('selected');
+        
+        // File upload handling
+        setupFileUpload();
+        
+        // Update filename preview when title or artist changes
+        document.getElementById('title').addEventListener('input', updateFilenamePreviewIfImageSelected);
+        document.getElementById('artist_name').addEventListener('input', updateFilenamePreviewIfImageSelected);
+
+        // Handle form submission
+        document.getElementById('artworkForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!supabase) {
+                showStatus('Please configure your Supabase URL in the script', 'error');
+                return;
+            }
+
+            const formData = new FormData(e.target);
+
+            showStatus('Uploading artwork...', 'info');
+
+            try {
+                await uploadArtwork(formData);
+            } catch (error) {
+                showStatus(`Upload failed: ${error.message}`, 'error');
+            }
+        });
+
+        // Authentication handler
+        document.getElementById('auth_button').addEventListener('click', async () => {
+            const email = document.getElementById('admin_email').value.trim();
+            const password = document.getElementById('admin_password').value.trim();
+            
+            if (!email || !password) {
+                document.getElementById('auth_status').innerHTML = '<span style="color: red;">Please enter email and password</span>';
+                return;
+            }
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                if (data.user && data.user.email === 'the37thmover@gmail.com') {
+                    document.getElementById('auth_status').innerHTML = '<span style="color: green;">✅ Authenticated as admin</span>';
+                    const uploadBtn = document.querySelector('.upload-btn');
+                    uploadBtn.disabled = false;
+                    uploadBtn.style.opacity = '1';
+                    uploadBtn.style.cursor = 'pointer';
+                    uploadBtn.textContent = '🚀 Add to Interactive Gallery';
+                } else {
+                    throw new Error('Admin access required');
+                }
+            } catch (error) {
+                document.getElementById('auth_status').innerHTML = `<span style="color: red;">❌ Authentication failed: ${error.message}</span>`;
+            }
+        });
+
+        async function uploadArtwork(formData) {
+            // Check authentication first
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || user.email !== 'the37thmover@gmail.com') {
+                showStatus('Please sign in as admin first', 'error');
+                return;
+            }
+            
+            // Validate required fields first
+            const artworkTitle = document.getElementById('title').value.trim();
+            if (!artworkTitle) {
+                showStatus('Please enter an artwork title first', 'error');
+                return;
+            }
+            
+            const imageFile = document.getElementById('artwork_image').files[0];
+            if (!imageFile) {
+                showStatus('Please select an artwork image', 'error');
+                return;
+            }
+            
+            console.log('DEBUG - About to upload with title:', artworkTitle);
+            
+            let imageUrl;
+            try {
+                showStatus('Uploading image...', 'info');
+                imageUrl = await uploadImageToSupabase(imageFile);
+            } catch (error) {
+                showStatus(error.message, 'error');
+                return;
+            }
+            // Create personality data
+            let personalityPreset;
+            
+            if (selectedPersonality === 'custom') {
+                // Build custom personality from form data
+                personalityPreset = {
+                    artistic_voice: document.getElementById('custom_artistic_voice').value || 'unique_creator',
+                    personality_traits: document.getElementById('custom_personality_traits').value.split(',').map(t => t.trim()).filter(t => t),
+                    speaking_style: document.getElementById('custom_speaking_style').value || 'expressive_personal',
+                    greeting_style: document.getElementById('custom_greeting_style').value,
+                    knowledge_domains: document.getElementById('custom_knowledge_domains').value.split(',').map(d => d.trim()).filter(d => d),
+                    response_length: document.getElementById('custom_response_length').value,
+                    special_abilities: document.getElementById('custom_special_abilities').value
+                };
+                
+                // Validate custom personality
+                if (!personalityPreset.artistic_voice || personalityPreset.personality_traits.length === 0) {
+                    showStatus('Please fill in at least Artistic Voice and Personality Traits for your custom personality', 'error');
+                    return;
+                }
+            } else {
+                personalityPreset = personalityPresets[selectedPersonality];
+            }
+            
+            // Convert FormData to regular object first
+            const artwork = Object.fromEntries(formData.entries());
+            
+            const personalityData = {
+                version: "1.0",
+                core_identity: {
+                    name: artwork.title,
+                    artistic_voice: personalityPreset.artistic_voice,
+                    personality_traits: personalityPreset.personality_traits,
+                    speaking_style: personalityPreset.speaking_style,
+                    knowledge_domains: personalityPreset.knowledge_domains
+                },
+                conversation_patterns: {
+                    greeting_style: personalityPreset.greeting_style,
+                    response_length: personalityPreset.response_length || "medium_detailed",
+                    question_handling: "socratic_method",
+                    topic_transitions: "flowing_organic"
+                },
+                artistic_knowledge: {
+                    creation_story: artwork.creation_story || `This artwork represents a unique exploration in digital creativity, embodying ${personalityPreset.personality_traits.join(', ')} qualities.`,
+                    techniques_used: ["digital_art", "ai_generation"],
+                    philosophical_themes: personalityPreset.knowledge_domains,
+                    related_artworks: [],
+                    special_abilities: personalityPreset.special_abilities || "Engages in thoughtful conversations about art and creativity"
+                },
+                context_memory: {
+                    remember_user_preferences: true,
+                    conversation_continuity: true,
+                    cross_session_memory: "limited",
+                    personality_evolution: false
+                },
+                fallback_responses: {
+                    api_error: "I seem to be experiencing a moment of digital meditation... Could you try again?",
+                    unknown_topic: "That's an intriguing perspective that makes me reflect on deeper connections...",
+                    rate_limit: "Let me gather my thoughts for a moment..."
+                }
+            };
+            
+            showStatus('Saving artwork details...', 'info');
+            
+            // Insert artwork
+            const { data: galleryItem, error: galleryError } = await supabase
+                .from('gallery_items')
+                .insert([{
+                    title: artwork.title,
+                    description: artwork.description,
+                    image_url: imageUrl, // Use the uploaded image URL
+                    artist_name: artwork.artist_name || 'Michael',
+                    price: parseFloat(artwork.price) || null,
+                    category: 'digital_art',
+                    tags: ['ai', 'digital', 'interactive'],
+                    is_available: true
+                }])
+                .select()
+                .single();
+
+            if (galleryError) throw galleryError;
+
+            // Insert personality
+            const { error: personalityError } = await supabase
+                .from('artwork_personalities')
+                .insert([{
+                    gallery_item_id: galleryItem.id,
+                    personality_data: personalityData
+                }]);
+
+            if (personalityError) throw personalityError;
+
+            showStatus(`🎉 SUCCESS! "${artwork.title}" is now live in the Interactive AI Gallery with ${selectedPersonality} personality!`, 'success');
+
+            // Reset form
+            document.getElementById('artworkForm').reset();
+            document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('selected'));
+            document.querySelector('.preset-card').classList.add('selected');
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        // Image Cropper Functions
+        let cropper = null;
+        let currentFile = null;
+
+        function openImageCropper() {
+            const fileInput = document.getElementById('artwork_image');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                showStatus('Please select an image first', 'error');
+                return;
+            }
+
+            currentFile = file;
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const cropperImage = document.getElementById('cropperImage');
+                cropperImage.src = e.target.result;
+                
+                document.getElementById('cropperModal').style.display = 'block';
+                
+                // Wait for image to load before initializing cropper
+                cropperImage.onload = function() {
+                    // Initialize Cropper.js with options for perspective correction
+                    cropper = new Cropper(cropperImage, {
+                    aspectRatio: NaN, // Free aspect ratio
+                    viewMode: 1, // Restrict crop box to not exceed the size of the canvas
+                    dragMode: 'move',
+                    autoCropArea: 0.8,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    cropBoxMovable: true,
+                    cropBoxResizable: true,
+                    toggleDragModeOnDblclick: false,
+                    background: false,
+                    modal: true,
+                    responsive: true,
+                    checkCrossOrigin: false
+                    });
+                };
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function applyCrop() {
+            if (!cropper) return;
+            
+            // Get cropped canvas
+            const canvas = cropper.getCroppedCanvas({
+                maxWidth: 2048,
+                maxHeight: 2048,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+            
+            // Convert canvas to blob and update the file input
+            canvas.toBlob(function(blob) {
+                // Create new File object with cropped image
+                const croppedFile = new File([blob], currentFile.name, {
+                    type: currentFile.type,
+                    lastModified: Date.now()
+                });
+                
+                // Create new FileList with the cropped file
+                const dt = new DataTransfer();
+                dt.items.add(croppedFile);
+                document.getElementById('artwork_image').files = dt.files;
+                
+                // Update preview
+                const previewImg = document.getElementById('previewImage');
+                previewImg.src = canvas.toDataURL();
+                
+                showStatus('✅ Image cropped and straightened successfully!', 'success');
+                closeCropper();
+            }, currentFile.type, 0.9);
+        }
+
+        function resetCrop() {
+            if (cropper) {
+                cropper.reset();
+            }
+        }
+
+        function closeCropper() {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+            document.getElementById('cropperModal').style.display = 'none';
+            currentFile = null;
+        }
+        
+        function setupFileUpload() {
+            const fileInput = document.getElementById('artwork_image');
+            const uploadArea = document.querySelector('.file-upload-area');
+            
+            // File input change handler
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // Drag and drop handlers
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type.startsWith('image/')) {
+                    fileInput.files = files;
+                    handleFileSelect({ target: { files } });
+                }
+            });
+        }
+        
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showStatus('Please select an image file (JPG, PNG, GIF)', 'error');
+                return;
+            }
+            
+            // Validate file size (10MB max)
+            if (file.size > 10 * 1024 * 1024) {
+                showStatus('Image file must be less than 10MB', 'error');
+                return;
+            }
+            
+            // Show preview
+            showImagePreview(file);
+        }
+        
+        function showImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('uploadPlaceholder').style.display = 'none';
+                document.getElementById('uploadPreview').style.display = 'block';
+                document.getElementById('previewImage').src = e.target.result;
+                updateFilenamePreview(file);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        function updateFilenamePreview(file) {
+            const artworkTitle = document.getElementById('title').value.trim() || 'untitled-artwork';
+            const artistName = document.getElementById('artist_name').value.trim() || 'michael';
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            
+            // Generate preview filename using same logic as upload
+            const cleanTitle = artworkTitle
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 30);
+                
+            const cleanArtist = artistName
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 15);
+            
+            const timestamp = new Date().toISOString().slice(0, 10);
+            const previewFilename = `${cleanArtist}_${cleanTitle}_${timestamp}_xxxxxx.${fileExt}`;
+            
+            document.getElementById('filenamePreview').innerHTML = `
+                <strong>Will be saved as:</strong><br>
+                <span style="color: #64b5f6;">${previewFilename}</span>
+            `;
+        }
+        
+        function clearImagePreview() {
+            document.getElementById('artwork_image').value = '';
+            document.getElementById('uploadPlaceholder').style.display = 'block';
+            document.getElementById('uploadPreview').style.display = 'none';
+            document.getElementById('previewImage').src = '';
+        }
+        
+        function updateFilenamePreviewIfImageSelected() {
+            const fileInput = document.getElementById('artwork_image');
+            if (fileInput.files[0] && document.getElementById('uploadPreview').style.display !== 'none') {
+                updateFilenamePreview(fileInput.files[0]);
+            }
+        }
+        
+        async function uploadImageToSupabase(file) {
+            if (!supabase) {
+                throw new Error('Supabase not initialized');
+            }
+            
+            // Get artwork title for filename - get fresh values
+            const artworkTitle = document.getElementById('title').value.trim();
+            const artistName = document.getElementById('artist_name').value.trim() || 'Michael';
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            
+            console.log('DEBUG - Reading form values:');
+            console.log('  - Title input value:', document.getElementById('title').value);
+            console.log('  - Artist input value:', document.getElementById('artist_name').value);
+            console.log('  - File extension:', fileExt);
+            
+            // Create consistent filename format: ARTIST_ARTWORK-TITLE_TIMESTAMP.ext
+            const cleanTitle = artworkTitle
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')  // Replace special chars with hyphens
+                .replace(/^-+|-+$/g, '')      // Remove leading/trailing hyphens
+                .substring(0, 30);            // Limit length
+                
+            const cleanArtist = artistName
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .substring(0, 15);
+            
+            const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+            const uniqueId = Math.random().toString(36).substr(2, 6); // 6 char unique ID
+            
+            const fileName = `${cleanArtist}_${cleanTitle}_${timestamp}_${uniqueId}.${fileExt}`;
+            
+            // Debug output
+            console.log('DEBUG - Original file:', file.name);
+            console.log('DEBUG - Artist:', artistName, '→', cleanArtist);
+            console.log('DEBUG - Title:', artworkTitle, '→', cleanTitle);  
+            console.log('DEBUG - Generated filename:', fileName);
+            
+            // Show upload progress
+            const uploadArea = document.querySelector('.file-upload-area');
+            uploadArea.classList.add('uploading');
+            
+            const progressHtml = `
+                <div class="upload-progress">
+                    <div class="upload-progress-bar" id="progressBar"></div>
+                </div>
+                <div style="margin-top: 10px; font-size: 0.9rem; color: #64b5f6;">Uploading artwork...</div>
+            `;
+            uploadArea.insertAdjacentHTML('beforeend', progressHtml);
+            
+            try {
+                console.log('DEBUG - Attempting upload to artwork-images bucket...');
+                
+                // Upload to Supabase Storage
+                const { data, error } = await supabase.storage
+                    .from('artwork-images')
+                    .upload(fileName, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+                
+                if (error) {
+                    console.error('DEBUG - Upload error:', error);
+                    throw error;
+                }
+                
+                console.log('DEBUG - Upload successful:', data);
+                
+                // Get public URL
+                const { data: urlData } = supabase.storage
+                    .from('artwork-images')
+                    .getPublicUrl(fileName);
+                
+                return urlData.publicUrl;
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                throw new Error(`Upload failed: ${error.message}`);
+            } finally {
+                // Clean up progress UI
+                uploadArea.classList.remove('uploading');
+                const progressEl = uploadArea.querySelector('.upload-progress');
+                const uploadingText = uploadArea.querySelector('div:last-child');
+                if (progressEl) progressEl.remove();
+                if (uploadingText && uploadingText.textContent.includes('Uploading')) {
+                    uploadingText.remove();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
